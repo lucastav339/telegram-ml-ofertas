@@ -1,14 +1,17 @@
-import httpx
-from urllib.parse import quote
-from app.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID, AFFILIATE_TEMPLATE
+from urllib.parse import quote, urlparse
+from app.config import AFFILIATE_TEMPLATE
+
+def extract_product_id(permalink: str) -> str:
+    """
+    Extrai o ID ou slug do produto a partir do permalink.
+    Exemplo:
+      https://produto.mercadolivre.com.br/MLB-123456789-smartphone
+    vira:
+      MLB-123456789-smartphone
+    """
+    path = urlparse(permalink).path
+    return path.strip("/").split("/")[-1]
 
 def make_affiliate_link(permalink: str) -> str:
-    return AFFILIATE_TEMPLATE.replace("{permalink}", quote(permalink, safe=""))
-
-async def send_offer(photo_url: str, caption_html: str):
-    api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    payload = {"chat_id": TELEGRAM_CHANNEL_ID, "photo": photo_url, "caption": caption_html, "parse_mode": "HTML"}
-    async with httpx.AsyncClient(timeout=20) as cx:
-        r = await cx.post(api, data=payload)
-        r.raise_for_status()
-        return r.json()
+    product_id = extract_product_id(permalink)
+    return AFFILIATE_TEMPLATE.replace("{permalink}", quote(product_id, safe=""))
