@@ -1,0 +1,12 @@
+telegram-ml-ofertas/
+├─ app/
+│  ├─ main.py
+│  ├─ config.py
+│  ├─ fetcher_meli.py
+│  ├─ filters.py
+│  ├─ publisher_telegram.py
+│  ├─ tasks.py
+│  ├─ celery_app.py
+├─ requirements.txt
+├─ runtime.txt
+├─ README.md
