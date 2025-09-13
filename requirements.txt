@@ -1,12 +1,7 @@
-telegram-ml-ofertas/
-├─ app/
-│  ├─ main.py
-│  ├─ config.py
-│  ├─ fetcher_meli.py
-│  ├─ filters.py
-│  ├─ publisher_telegram.py
-│  ├─ tasks.py
-│  ├─ celery_app.py
-├─ requirements.txt
-├─ runtime.txt
-├─ README.md
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+httpx==0.27.2
+python-dotenv==1.0.1
+redis==5.0.8
+celery[redis]==5.4.0
+tenacity==9.0.0
