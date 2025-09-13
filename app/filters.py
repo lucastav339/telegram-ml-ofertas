@@ -1,6 +1,5 @@
-import math
-import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
+import httpx
 
 def compute_discount(now: float | None, original: float | None) -> float | None:
     if not now or not original or original <= now:
@@ -9,7 +8,8 @@ def compute_discount(now: float | None, original: float | None) -> float | None:
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=8))
 async def get_seller_level(seller_id: int) -> str | None:
-    # Reputação do vendedor (nível)
+    if not seller_id:
+        return None
     url = f"https://api.mercadolibre.com/users/{seller_id}"
     async with httpx.AsyncClient(timeout=20) as cx:
         r = await cx.get(url)
