@@ -1,12 +1,12 @@
 import redis.asyncio as redis
-from urllib.parse import urlparse
 from app.config import REDIS_URL
 from app.fetcher_meli import search_products
 from app.filters import compute_discount, get_seller_level, good_seller
 from app.publisher_telegram import make_affiliate_link, send_offer
 
-# Conexão Redis (compartilhada)
-rds = redis.from_url(REDIS_URL)
+# Pool único e pequeno (evita estourar limite do Redis Cloud)
+_pool = redis.ConnectionPool.from_url(REDIS_URL, max_connections=5, decode_responses=False)
+rds = redis.Redis(connection_pool=_pool)
 
 def _format_currency(v) -> str:
     try:
@@ -28,7 +28,6 @@ def build_caption(item: dict, discount_pct: int, seller_level: str, affiliate_ur
         f"#promo #ofertas"
     )
 
-# Re-exporta utilidades usadas no tasks.py
 __all__ = [
     "rds",
     "search_products",
@@ -37,5 +36,3 @@ __all__ = [
     "good_seller",
     "make_affiliate_link",
     "send_offer",
-    "build_caption",
-]
