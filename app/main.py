@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 import os
 import redis.asyncio as redis
+import httpx
 from app.celery_app import celery_app
+from app.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHANNEL_ID
 
 app = FastAPI()
 
@@ -21,19 +23,16 @@ def healthz():
     return {"ok": True}
 
 
-# 🔎 Diagnóstico: testa Redis e presença do Worker
+# 🔎 Diagnóstico: testa Redis e Worker
 @app.get("/diagnostics")
 async def diagnostics():
     info = {"web_ok": True}
-
-    # Mostrar só se variáveis existem (sem vazar segredos)
     info["env"] = {
-        "REDIS_URL_scheme": os.getenv("REDIS_URL", "")[:6],  # 'redis:' ou 'rediss'
+        "REDIS_URL_scheme": os.getenv("REDIS_URL", "")[:6],
         "TELEGRAM_CHANNEL_ID_set": bool(os.getenv("TELEGRAM_CHANNEL_ID")),
         "TELEGRAM_BOT_TOKEN_set": bool(os.getenv("TELEGRAM_BOT_TOKEN")),
     }
 
-    # Teste Redis
     try:
         rds = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
         pong = await rds.ping()
@@ -42,7 +41,6 @@ async def diagnostics():
         info["redis_ping"] = False
         info["redis_error"] = repr(e)
 
-    # Ping Celery Worker
     try:
         pongs = celery_app.control.ping(timeout=2)
         info["celery_ping"] = pongs or []
@@ -54,7 +52,7 @@ async def diagnostics():
     return info
 
 
-# 🔔 POST padrão (Postman/curl)
+# 🔔 Forçar execução via POST (para Postman/curl)
 @app.post("/run-now")
 def run_now():
     try:
@@ -64,7 +62,7 @@ def run_now():
         return {"scheduled": False, "error": repr(e)}
 
 
-# 🔔 GET amigável (para testar no navegador)
+# 🔔 Forçar execução via GET (para navegador)
 @app.get("/test-run")
 def test_run():
     try:
@@ -72,3 +70,17 @@ def test_run():
         return {"scheduled": True, "note": "Executado via GET /test-run"}
     except Exception as e:
         return {"scheduled": False, "error": repr(e)}
+
+
+# 🔎 Teste de envio direto ao Telegram (ignora filtros/Redis)
+@app.get("/test-telegram")
+async def test_telegram():
+    try:
+        api = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {"chat_id": TELEGRAM_CHANNEL_ID, "text": "✅ Teste OK: bot conectado e com permissão de postar."}
+        async with httpx.AsyncClient(timeout=15) as cx:
+            r = await cx.post(api, data=data)
+            r.raise_for_status()
+        return {"ok": True, "telegram_response": r.json()}
+    except Exception as e:
+        return {"ok": False, "error": repr(e)}
