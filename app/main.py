@@ -9,7 +9,5 @@ def health():
 
 @app.post("/run-now")
 def run_now():
-    # dispara manualmente pelo navegador/insomnia
     celery_app.send_task("publish_offers_all_categories")
     return {"scheduled": True}
-
